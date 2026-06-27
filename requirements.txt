@@ -1,0 +1,9 @@
+ultralytics
+opencv-python
+pandas
+requests
+streamlit
+pillow
+qrcode
+adafruit-circuitpython-ads1x15
+gpiozero

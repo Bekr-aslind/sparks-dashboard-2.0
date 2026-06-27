@@ -1,0 +1,16 @@
+sparks-env/
+__pycache__/
+*.pyc
+
+captures/
+processed/
+data/
+
+.env
+credentials.json
+token.json
+
+*.jpg
+*.png
+*.jpeg
+*.mp4
