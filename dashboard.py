@@ -79,7 +79,7 @@ st.markdown(
         font-size: 0.9rem;
     }
 
-    .remark-warning {
+    .remark-moderate {
         color: #facc15;
         font-weight: 900;
         letter-spacing: 0.12em;
@@ -188,26 +188,43 @@ def clean_value(value, unit="", decimals=2):
         return str(value)
 
 
+def display_status(value):
+    value = str(value).upper()
+
+    if value == "WARNING":
+        return "MODERATE"
+
+    if value == "MEDIUM":
+        return "MODERATE"
+
+    if value == "FAIL":
+        return "DEFECT"
+
+    return value
+
+
 def get_tray_remark(group):
-    visual_statuses = group["visual_status"].astype(str).str.upper().tolist()
-    electrical_statuses = group["electrical_status"].astype(str).str.upper().tolist()
+    alignment_statuses = group["visual_status"].astype(str).str.upper().tolist()
+    dc_testing_statuses = group["electrical_status"].astype(str).str.upper().tolist()
     risk_values = group["tray_risk"].astype(str).str.upper().tolist()
 
     if (
-        "FAIL" in visual_statuses
-        or "DEFECT" in visual_statuses
-        or "FAIL" in electrical_statuses
-        or "DEFECT" in electrical_statuses
+        "FAIL" in alignment_statuses
+        or "DEFECT" in alignment_statuses
+        or "FAIL" in dc_testing_statuses
+        or "DEFECT" in dc_testing_statuses
         or "HIGH" in risk_values
     ):
         return "DEFECT"
 
     if (
-        "WARNING" in visual_statuses
-        or "WARNING" in electrical_statuses
+        "WARNING" in alignment_statuses
+        or "MEDIUM" in alignment_statuses
+        or "WARNING" in dc_testing_statuses
+        or "MEDIUM" in dc_testing_statuses
         or "MEDIUM" in risk_values
     ):
-        return "WARNING"
+        return "MODERATE"
 
     return "GOOD"
 
@@ -244,7 +261,7 @@ st.markdown(
 )
 
 if df.empty:
-    st.warning("No inspection data available yet.")
+    st.info("No inspection data available yet.")
     st.info("The dashboard is ready. Data will appear here after the main system records inspection results.")
     st.stop()
 
@@ -281,7 +298,7 @@ st.markdown(
 tray_list = sorted(df["tray_id"].dropna().unique())
 
 if len(tray_list) == 0:
-    st.warning("No tray data available yet.")
+    st.info("No tray data available yet.")
     st.stop()
 
 tray_summary_rows = []
@@ -293,14 +310,14 @@ for tray_id, group in df.groupby("tray_id"):
         "total_die": len(group),
         "mean_misalignment_percent": group["misalignment_percent"].mean(),
         "mean_voltage": group["voltage_value"].mean(),
-        "mean_final_score": group["final_die_score"].mean()
+        "tray_score": group["final_die_score"].mean()
     })
 
 tray_summary = pd.DataFrame(tray_summary_rows)
 
 tray_summary["mean_misalignment_percent"] = tray_summary["mean_misalignment_percent"].round(2)
 tray_summary["mean_voltage"] = tray_summary["mean_voltage"].round(3)
-tray_summary["mean_final_score"] = tray_summary["mean_final_score"].round(2)
+tray_summary["tray_score"] = tray_summary["tray_score"].round(2)
 
 
 # =========================
@@ -313,8 +330,8 @@ for index, row in tray_summary.iterrows():
 
     if remark == "GOOD":
         remark_class = "remark-good"
-    elif remark == "WARNING":
-        remark_class = "remark-warning"
+    elif remark == "MODERATE":
+        remark_class = "remark-moderate"
     else:
         remark_class = "remark-defect"
 
@@ -328,8 +345,8 @@ for index, row in tray_summary.iterrows():
         f'<div class="metric-value-custom">{clean_value(row["mean_misalignment_percent"], "%", 2)}</div>'
         f'<div class="metric-label-custom">Mean Voltage</div>'
         f'<div class="metric-value-custom">{clean_value(row["mean_voltage"], " V", 3)}</div>'
-        f'<div class="metric-label-custom">Mean Final Score</div>'
-        f'<div class="metric-value-custom">{clean_value(row["mean_final_score"], "", 2)}</div>'
+        f'<div class="metric-label-custom">Tray Score</div>'
+        f'<div class="metric-value-custom">{clean_value(row["tray_score"], "", 2)}</div>'
         f'</div>'
     )
 
@@ -358,8 +375,8 @@ selected_tray_remark = tray_summary[
 
 if selected_tray_remark == "DEFECT":
     st.error(f"Selected Tray: {selected_tray} | Remark: DEFECT")
-elif selected_tray_remark == "WARNING":
-    st.warning(f"Selected Tray: {selected_tray} | Remark: WARNING")
+elif selected_tray_remark == "MODERATE":
+    st.warning(f"Selected Tray: {selected_tray} | Remark: MODERATE")
 else:
     st.success(f"Selected Tray: {selected_tray} | Remark: GOOD")
 
@@ -369,23 +386,23 @@ else:
 # =========================
 total_die = len(filtered_df)
 
-visual_status_upper = filtered_df["visual_status"].astype(str).str.upper()
-electrical_status_upper = filtered_df["electrical_status"].astype(str).str.upper()
+alignment_status_upper = filtered_df["visual_status"].astype(str).str.upper()
+dc_testing_status_upper = filtered_df["electrical_status"].astype(str).str.upper()
 
-visual_fail = visual_status_upper.isin(["FAIL", "DEFECT"]).sum()
-visual_warning = (visual_status_upper == "WARNING").sum()
-electrical_fail = electrical_status_upper.isin(["FAIL", "DEFECT"]).sum()
+alignment_defect = alignment_status_upper.isin(["FAIL", "DEFECT"]).sum()
+alignment_moderate = alignment_status_upper.isin(["WARNING", "MEDIUM"]).sum()
+dc_testing_defect = dc_testing_status_upper.isin(["FAIL", "DEFECT"]).sum()
 
 average_misalignment = filtered_df["misalignment_percent"].mean()
-average_score = filtered_df["final_die_score"].mean()
+average_tray_score = filtered_df["final_die_score"].mean()
 
 col1, col2, col3, col4, col5 = st.columns(5)
 
 col1.metric("Tray ID", selected_tray)
 col2.metric("Total Die", total_die)
-col3.metric("Visual WARNING", visual_warning)
-col4.metric("Visual FAIL", visual_fail)
-col5.metric("Electrical FAIL", electrical_fail)
+col3.metric("Alignment MODERATE", alignment_moderate)
+col4.metric("Alignment DEFECT", alignment_defect)
+col5.metric("DC Testing DEFECT", dc_testing_defect)
 
 col6, col7 = st.columns(2)
 
@@ -395,8 +412,8 @@ col6.metric(
 )
 
 col7.metric(
-    "Average Final Die Score",
-    clean_value(average_score, "", 1)
+    "Average Tray Score",
+    clean_value(average_tray_score, "", 1)
 )
 
 
@@ -408,13 +425,13 @@ risk_values = filtered_df["tray_risk"].astype(str).str.upper().tolist()
 if "HIGH" in risk_values:
     tray_risk = "HIGH"
 elif "MEDIUM" in risk_values:
-    tray_risk = "MEDIUM"
+    tray_risk = "MODERATE"
 else:
     tray_risk = "LOW"
 
 if tray_risk == "HIGH":
     st.error(f"Tray Risk Level: {tray_risk}")
-elif tray_risk == "MEDIUM":
+elif tray_risk == "MODERATE":
     st.warning(f"Tray Risk Level: {tray_risk}")
 else:
     st.success(f"Tray Risk Level: {tray_risk}")
@@ -447,8 +464,36 @@ display_columns = [
     "timestamp"
 ]
 
+display_df = filtered_df[display_columns].copy()
+
+display_df["visual_status"] = display_df["visual_status"].apply(display_status)
+display_df["electrical_status"] = display_df["electrical_status"].apply(display_status)
+display_df["tray_risk"] = display_df["tray_risk"].apply(display_status)
+
+display_df = display_df.rename(columns={
+    "tray_id": "Tray ID",
+    "die_id": "Die ID",
+    "base_detected": "Base Detected",
+    "die_detected": "Die Detected",
+    "base_confidence": "Base Confidence",
+    "die_confidence": "Die Confidence",
+    "x_offset_px": "X Offset (px)",
+    "y_offset_px": "Y Offset (px)",
+    "offset_distance_px": "Offset Distance (px)",
+    "offset_percent": "Offset (%)",
+    "overlap_percent": "Overlap (%)",
+    "misalignment_percent": "Misalignment (%)",
+    "visual_status": "Alignment Status",
+    "visual_score": "Alignment Score",
+    "voltage_value": "DC Voltage (V)",
+    "electrical_status": "DC Testing Status",
+    "final_die_score": "Die Score",
+    "tray_risk": "Tray Risk",
+    "timestamp": "Timestamp"
+})
+
 st.dataframe(
-    filtered_df[display_columns],
+    display_df,
     use_container_width=True
 )
 
@@ -458,18 +503,18 @@ st.dataframe(
 # =========================
 st.subheader("Inspection Performance Summary")
 
-visual_pass_count = (visual_status_upper == "PASS").sum()
-electrical_pass_count = (electrical_status_upper == "PASS").sum()
+alignment_pass_count = (alignment_status_upper == "PASS").sum()
+dc_testing_pass_count = (dc_testing_status_upper == "PASS").sum()
 
-visual_pass_rate = (visual_pass_count / total_die * 100) if total_die > 0 else 0
-electrical_pass_rate = (electrical_pass_count / total_die * 100) if total_die > 0 else 0
+alignment_pass_rate = (alignment_pass_count / total_die * 100) if total_die > 0 else 0
+dc_testing_pass_rate = (dc_testing_pass_count / total_die * 100) if total_die > 0 else 0
 
 average_overlap = filtered_df["overlap_percent"].mean()
 
 summary_col1, summary_col2, summary_col3, summary_col4 = st.columns(4)
 
-summary_col1.metric("Visual Pass Rate", f"{visual_pass_rate:.1f}%")
-summary_col2.metric("Electrical Pass Rate", f"{electrical_pass_rate:.1f}%")
+summary_col1.metric("Alignment Pass Rate", f"{alignment_pass_rate:.1f}%")
+summary_col2.metric("DC Testing Pass Rate", f"{dc_testing_pass_rate:.1f}%")
 summary_col3.metric("Average Misalignment", clean_value(average_misalignment, "%", 2))
 summary_col4.metric("Average Overlap", clean_value(average_overlap, "%", 2))
 
@@ -488,13 +533,20 @@ alignment_trend_df = filtered_df[
     ]
 ].copy()
 
+alignment_trend_df = alignment_trend_df.rename(columns={
+    "die_id": "Die ID",
+    "misalignment_percent": "Misalignment (%)",
+    "overlap_percent": "Overlap (%)",
+    "offset_percent": "Offset (%)"
+})
+
 alignment_trend_df = alignment_trend_df.dropna(
-    subset=["misalignment_percent", "overlap_percent", "offset_percent"],
+    subset=["Misalignment (%)", "Overlap (%)", "Offset (%)"],
     how="all"
 )
 
 if not alignment_trend_df.empty:
-    alignment_trend_df = alignment_trend_df.set_index("die_id")
+    alignment_trend_df = alignment_trend_df.set_index("Die ID")
     st.line_chart(alignment_trend_df)
 else:
     st.info("No alignment trend data available yet.")
@@ -513,13 +565,19 @@ score_trend_df = filtered_df[
     ]
 ].copy()
 
+score_trend_df = score_trend_df.rename(columns={
+    "die_id": "Die ID",
+    "visual_score": "Alignment Score",
+    "final_die_score": "Die Score"
+})
+
 score_trend_df = score_trend_df.dropna(
-    subset=["visual_score", "final_die_score"],
+    subset=["Alignment Score", "Die Score"],
     how="all"
 )
 
 if not score_trend_df.empty:
-    score_trend_df = score_trend_df.set_index("die_id")
+    score_trend_df = score_trend_df.set_index("Die ID")
     st.line_chart(score_trend_df)
 else:
     st.info("No score trend data available yet.")
@@ -542,10 +600,18 @@ die_row = filtered_df[filtered_df["die_id"] == selected_die].iloc[0]
 
 detail_col1, detail_col2, detail_col3 = st.columns(3)
 
-detail_col1.metric("Visual Status", str(die_row["visual_status"]))
-detail_col2.metric("Electrical Status", str(die_row["electrical_status"]))
+detail_col1.metric(
+    "Alignment Status",
+    display_status(die_row["visual_status"])
+)
+
+detail_col2.metric(
+    "DC Testing Status",
+    display_status(die_row["electrical_status"])
+)
+
 detail_col3.metric(
-    "Final Die Score",
+    "Die Score",
     clean_value(die_row["final_die_score"], "", 1)
 )
 
