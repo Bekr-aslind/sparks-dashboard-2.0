@@ -10,6 +10,123 @@ st.set_page_config(
     layout="wide"
 )
 
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background: linear-gradient(135deg, #0b1020 0%, #111827 45%, #0f172a 100%);
+        color: #e5e7eb;
+    }
+
+    [data-testid="stHeader"] {
+        background: rgba(0, 0, 0, 0);
+    }
+
+    .main-title {
+        font-size: 3rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        margin-bottom: 0rem;
+        background: linear-gradient(90deg, #38bdf8, #a78bfa, #22c55e);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+        color: #94a3b8;
+        font-size: 1rem;
+        margin-bottom: 2rem;
+        letter-spacing: 0.08em;
+    }
+
+    .glass-card {
+        background: rgba(15, 23, 42, 0.72);
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 22px;
+        padding: 1.3rem;
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+        backdrop-filter: blur(14px);
+        margin-bottom: 1rem;
+    }
+
+    .tray-card {
+        background: rgba(15, 23, 42, 0.82);
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 20px;
+        padding: 1.2rem;
+        min-height: 180px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+    }
+
+    .tray-id {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #f8fafc;
+        margin-bottom: 0.4rem;
+    }
+
+    .remark-good {
+        color: #22c55e;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+    }
+
+    .remark-warning {
+        color: #facc15;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+    }
+
+    .remark-defect {
+        color: #ef4444;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+    }
+
+    .metric-label {
+        color: #94a3b8;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-top: 0.75rem;
+    }
+
+    .metric-value {
+        color: #e5e7eb;
+        font-size: 1.05rem;
+        font-weight: 700;
+    }
+
+    .section-heading {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #f8fafc;
+        margin-top: 1.5rem;
+        margin-bottom: 0.8rem;
+    }
+
+    div[data-testid="stMetric"] {
+        background: rgba(15, 23, 42, 0.72);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        padding: 1rem;
+        border-radius: 18px;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+    }
+
+    div[data-testid="stDataFrame"] {
+        border-radius: 18px;
+        overflow: hidden;
+    }
+
+    .stSelectbox label {
+        color: #cbd5e1 !important;
+        font-weight: 700;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 LOCAL_CSV = "data/inspection_results.csv"
 
 # Later, when Google Sheets is ready, paste the published CSV link here
@@ -66,8 +183,13 @@ df = load_data()
 # =========================
 # TITLE
 # =========================
-st.title("S.P.A.R.K.S")
-st.caption("Sampling Prediction and Risk Knowledge System")
+st.markdown(
+    """
+    <div class="main-title">S.P.A.R.K.S</div>
+    <div class="subtitle">INTELLIGENT INSPECTION DASHBOARD · SAMPLING PREDICTION AND RISK KNOWLEDGE SYSTEM</div>
+    """,
+    unsafe_allow_html=True
+)
 
 if df.empty:
     st.warning("No inspection data available yet.")
@@ -97,9 +219,9 @@ for col in numeric_columns:
 
 
 # =========================
-# SIDEBAR FILTER
+# TRAY SELECTION PAGE
 # =========================
-st.sidebar.header("Filter")
+st.markdown('<div class="section-heading">Tray Selection Overview</div>', unsafe_allow_html=True)
 
 tray_list = sorted(df["tray_id"].dropna().unique())
 
@@ -107,22 +229,108 @@ if len(tray_list) == 0:
     st.warning("No tray data available yet.")
     st.stop()
 
-# Read tray_id from QR/dashboard URL if available
-query_params = st.query_params
-tray_from_url = query_params.get("tray_id", "")
 
-if tray_from_url in tray_list:
-    default_index = tray_list.index(tray_from_url)
-else:
-    default_index = 0
+def get_tray_remark(group):
+    visual_statuses = group["visual_status"].astype(str).str.upper().tolist()
+    electrical_statuses = group["electrical_status"].astype(str).str.upper().tolist()
+    risk_values = group["tray_risk"].astype(str).str.upper().tolist()
 
-selected_tray = st.sidebar.selectbox(
-    "Select Tray ID",
-    tray_list,
-    index=default_index
+    if (
+        "FAIL" in visual_statuses
+        or "DEFECT" in visual_statuses
+        or "FAIL" in electrical_statuses
+        or "DEFECT" in electrical_statuses
+        or "HIGH" in risk_values
+    ):
+        return "DEFECT"
+
+    if (
+        "WARNING" in visual_statuses
+        or "WARNING" in electrical_statuses
+        or "MEDIUM" in risk_values
+    ):
+        return "WARNING"
+
+    return "GOOD"
+
+
+tray_summary_rows = []
+
+for_trays = df.groupby("tray_id")
+
+for tray_id, group in for_trays:
+    tray_summary_rows.append({
+        "tray_id": tray_id,
+        "remark": get_tray_remark(group),
+        "total_die": len(group),
+        "mean_misalignment_percent": group["misalignment_percent"].mean(),
+        "mean_voltage": group["voltage_value"].mean(),
+        "mean_final_score": group["final_die_score"].mean()
+    })
+
+tray_summary = pd.DataFrame(tray_summary_rows)
+
+tray_summary["mean_misalignment_percent"] = tray_summary["mean_misalignment_percent"].round(2)
+tray_summary["mean_voltage"] = tray_summary["mean_voltage"].round(3)
+tray_summary["mean_final_score"] = tray_summary["mean_final_score"].round(2)
+
+
+# Display tray cards
+card_cols = st.columns(3)
+
+for index, row in tray_summary.iterrows():
+    remark = str(row["remark"]).upper()
+
+    if remark == "GOOD":
+        remark_class = "remark-good"
+    elif remark == "WARNING":
+        remark_class = "remark-warning"
+    else:
+        remark_class = "remark-defect"
+
+    with card_cols[index % 3]:
+        st.markdown(
+            f"""
+            <div class="tray-card">
+                <div class="tray-id">{row["tray_id"]}</div>
+                <div class="{remark_class}">{remark}</div>
+
+                <div class="metric-label">Total Die</div>
+                <div class="metric-value">{row["total_die"]}</div>
+
+                <div class="metric-label">Mean Misalignment</div>
+                <div class="metric-value">{row["mean_misalignment_percent"]}%</div>
+
+                <div class="metric-label">Mean Voltage</div>
+                <div class="metric-value">{row["mean_voltage"]} V</div>
+
+                <div class="metric-label">Mean Final Score</div>
+                <div class="metric-value">{row["mean_final_score"]}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+st.markdown('<div class="section-heading">Select Tray to Inspect</div>', unsafe_allow_html=True)
+
+selected_tray = st.selectbox(
+    "Choose a tray ID",
+    tray_summary["tray_id"].tolist()
 )
 
 filtered_df = df[df["tray_id"] == selected_tray]
+
+selected_tray_remark = tray_summary[
+    tray_summary["tray_id"] == selected_tray
+]["remark"].iloc[0]
+
+if selected_tray_remark == "DEFECT":
+    st.error(f"Selected Tray: {selected_tray} | Remark: DEFECT")
+elif selected_tray_remark == "WARNING":
+    st.warning(f"Selected Tray: {selected_tray} | Remark: WARNING")
+else:
+    st.success(f"Selected Tray: {selected_tray} | Remark: GOOD")
 
 
 # =========================
