@@ -290,7 +290,7 @@ for index, row in tray_summary.iterrows():
 
     with card_cols[index % 3]:
         st.markdown(
-            f"""
+            card_html = f"""
             <div class="tray-card">
                 <div class="tray-id">{row["tray_id"]}</div>
                 <div class="{remark_class}">{remark}</div>
@@ -556,42 +556,28 @@ with detect_col2:
 
 
 # =========================
-# IMAGE AND QR DISPLAY
+# PROCESSED IMAGE DISPLAY
 # =========================
-st.subheader("Processed Image and QR Access")
+st.subheader("Processed Die Image")
 
 image_url = str(die_row.get("image_url", "")).strip()
-qr_code_url = str(die_row.get("qr_code_url", "")).strip()
+image_name = str(die_row.get("image_name", "")).strip()
+local_processed_path = os.path.join("processed", image_name)
 
-col_img, col_qr = st.columns(2)
+if os.path.exists(local_processed_path):
+    st.image(
+        local_processed_path,
+        caption=f"Processed image for {selected_die}",
+        use_container_width=True
+    )
 
-with col_img:
-    st.markdown("### Processed Die Image")
+elif image_url and image_url.lower() != "nan":
+    st.image(
+        image_url,
+        caption=f"Processed image for {selected_die}",
+        use_container_width=True
+    )
+    st.markdown(f"[Open image in new tab]({image_url})")
 
-    image_name = str(die_row.get("image_name", "")).strip()
-    local_processed_path = os.path.join("processed", image_name)
-
-    if os.path.exists(local_processed_path):
-        st.image(
-            local_processed_path,
-            caption=f"Processed image for {selected_die}",
-            use_container_width=True
-        )
-
-    elif image_url and image_url.lower() != "nan":
-        st.image(
-            image_url,
-            caption=f"Processed image for {selected_die}",
-            use_container_width=True
-        )
-        st.markdown(f"[Open image in new tab]({image_url})")
-
-    else:
-        st.info("No image link available yet.")
-        
-with col_qr:
-    st.markdown("### QR / Tray Access")
-    if qr_code_url and qr_code_url.lower() != "nan":
-        st.markdown(f"[Open Tray Inspection Record]({qr_code_url})")
-    else:
-        st.info("No QR code link available yet.")
+else:
+    st.info("No image link available yet.")
