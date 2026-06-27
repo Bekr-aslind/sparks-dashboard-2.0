@@ -107,7 +107,20 @@ if len(tray_list) == 0:
     st.warning("No tray data available yet.")
     st.stop()
 
-selected_tray = st.sidebar.selectbox("Select Tray ID", tray_list)
+# Read tray_id from QR/dashboard URL if available
+query_params = st.query_params
+tray_from_url = query_params.get("tray_id", "")
+
+if tray_from_url in tray_list:
+    default_index = tray_list.index(tray_from_url)
+else:
+    default_index = 0
+
+selected_tray = st.sidebar.selectbox(
+    "Select Tray ID",
+    tray_list,
+    index=default_index
+)
 
 filtered_df = df[df["tray_id"] == selected_tray]
 
