@@ -22,95 +22,99 @@ st.markdown(
         background: rgba(0, 0, 0, 0);
     }
 
+    .block-container {
+        padding-top: 4rem;
+        padding-bottom: 4rem;
+    }
+
     .main-title {
-        font-size: 3rem;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        margin-bottom: 0rem;
-        background: linear-gradient(90deg, #38bdf8, #a78bfa, #22c55e);
+        font-size: 3.2rem;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        margin-bottom: 0.3rem;
+        background: linear-gradient(90deg, #38bdf8, #818cf8, #22c55e);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
 
     .subtitle {
-        color: #94a3b8;
-        font-size: 1rem;
-        margin-bottom: 2rem;
-        letter-spacing: 0.08em;
+        color: #93c5fd;
+        font-size: 0.95rem;
+        margin-bottom: 2.4rem;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
     }
 
-    .glass-card {
-        background: rgba(15, 23, 42, 0.72);
-        border: 1px solid rgba(148, 163, 184, 0.22);
-        border-radius: 22px;
-        padding: 1.3rem;
-        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
-        backdrop-filter: blur(14px);
+    .section-heading {
+        font-size: 1.45rem;
+        font-weight: 850;
+        color: #f8fafc;
+        margin-top: 1.8rem;
         margin-bottom: 1rem;
     }
 
     .tray-card {
-        background: rgba(15, 23, 42, 0.82);
-        border: 1px solid rgba(148, 163, 184, 0.22);
-        border-radius: 20px;
-        padding: 1.2rem;
-        min-height: 180px;
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+        background: rgba(15, 23, 42, 0.88);
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        border-radius: 22px;
+        padding: 1.25rem;
+        min-height: 245px;
+        box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+        margin-bottom: 1rem;
+        backdrop-filter: blur(14px);
     }
 
     .tray-id {
-        font-size: 1.35rem;
-        font-weight: 800;
+        font-size: 1.45rem;
+        font-weight: 900;
         color: #f8fafc;
-        margin-bottom: 0.4rem;
+        margin-bottom: 0.45rem;
     }
 
     .remark-good {
         color: #22c55e;
-        font-weight: 800;
-        letter-spacing: 0.08em;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
     }
 
     .remark-warning {
         color: #facc15;
-        font-weight: 800;
-        letter-spacing: 0.08em;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
     }
 
     .remark-defect {
         color: #ef4444;
-        font-weight: 800;
-        letter-spacing: 0.08em;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
     }
 
-    .metric-label {
+    .metric-label-custom {
         color: #94a3b8;
-        font-size: 0.78rem;
+        font-size: 0.72rem;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
-        margin-top: 0.75rem;
+        letter-spacing: 0.1em;
+        margin-top: 0.85rem;
     }
 
-    .metric-value {
+    .metric-value-custom {
         color: #e5e7eb;
-        font-size: 1.05rem;
-        font-weight: 700;
-    }
-
-    .section-heading {
-        font-size: 1.4rem;
+        font-size: 1.08rem;
         font-weight: 800;
-        color: #f8fafc;
-        margin-top: 1.5rem;
-        margin-bottom: 0.8rem;
     }
 
     div[data-testid="stMetric"] {
-        background: rgba(15, 23, 42, 0.72);
-        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(15, 23, 42, 0.76);
+        border: 1px solid rgba(148, 163, 184, 0.20);
         padding: 1rem;
         border-radius: 18px;
-        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
     }
 
     div[data-testid="stDataFrame"] {
@@ -122,14 +126,24 @@ st.markdown(
         color: #cbd5e1 !important;
         font-weight: 700;
     }
+
+    h1, h2, h3 {
+        color: #f8fafc !important;
+    }
+
+    p, span, label {
+        color: #e5e7eb;
+    }
     </style>
     """,
     unsafe_allow_html=True
 )
 
+# =========================
+# DATA SETTINGS
+# =========================
 LOCAL_CSV = "data/inspection_results.csv"
 
-# Later, when Google Sheets is ready, paste the published CSV link here
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYv4vtoKDuaULQexNYJE-vKLS8tWYy9BxgiBr2x-4ZOMjO_5QQIlBujUCjfMXHrPoMA2hGD4DR3Daj/pub?output=csv"
 
 REQUIRED_COLUMNS = [
@@ -161,6 +175,44 @@ REQUIRED_COLUMNS = [
 
 
 # =========================
+# HELPER FUNCTIONS
+# =========================
+def clean_value(value, unit="", decimals=2):
+    if pd.isna(value):
+        return "N/A"
+
+    try:
+        value = float(value)
+        return f"{value:.{decimals}f}{unit}"
+    except Exception:
+        return str(value)
+
+
+def get_tray_remark(group):
+    visual_statuses = group["visual_status"].astype(str).str.upper().tolist()
+    electrical_statuses = group["electrical_status"].astype(str).str.upper().tolist()
+    risk_values = group["tray_risk"].astype(str).str.upper().tolist()
+
+    if (
+        "FAIL" in visual_statuses
+        or "DEFECT" in visual_statuses
+        or "FAIL" in electrical_statuses
+        or "DEFECT" in electrical_statuses
+        or "HIGH" in risk_values
+    ):
+        return "DEFECT"
+
+    if (
+        "WARNING" in visual_statuses
+        or "WARNING" in electrical_statuses
+        or "MEDIUM" in risk_values
+    ):
+        return "WARNING"
+
+    return "GOOD"
+
+
+# =========================
 # LOAD DATA
 # =========================
 @st.cache_data(ttl=10)
@@ -186,7 +238,7 @@ df = load_data()
 st.markdown(
     """
     <div class="main-title">S.P.A.R.K.S</div>
-    <div class="subtitle">INTELLIGENT INSPECTION DASHBOARD · SAMPLING PREDICTION AND RISK KNOWLEDGE SYSTEM</div>
+    <div class="subtitle">Intelligent Inspection Dashboard · Sampling Prediction and Risk Knowledge System</div>
     """,
     unsafe_allow_html=True
 )
@@ -219,9 +271,12 @@ for col in numeric_columns:
 
 
 # =========================
-# TRAY SELECTION PAGE
+# TRAY SELECTION OVERVIEW
 # =========================
-st.markdown('<div class="section-heading">Tray Selection Overview</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="section-heading">Tray Selection Overview</div>',
+    unsafe_allow_html=True
+)
 
 tray_list = sorted(df["tray_id"].dropna().unique())
 
@@ -229,36 +284,9 @@ if len(tray_list) == 0:
     st.warning("No tray data available yet.")
     st.stop()
 
-
-def get_tray_remark(group):
-    visual_statuses = group["visual_status"].astype(str).str.upper().tolist()
-    electrical_statuses = group["electrical_status"].astype(str).str.upper().tolist()
-    risk_values = group["tray_risk"].astype(str).str.upper().tolist()
-
-    if (
-        "FAIL" in visual_statuses
-        or "DEFECT" in visual_statuses
-        or "FAIL" in electrical_statuses
-        or "DEFECT" in electrical_statuses
-        or "HIGH" in risk_values
-    ):
-        return "DEFECT"
-
-    if (
-        "WARNING" in visual_statuses
-        or "WARNING" in electrical_statuses
-        or "MEDIUM" in risk_values
-    ):
-        return "WARNING"
-
-    return "GOOD"
-
-
 tray_summary_rows = []
 
-for_trays = df.groupby("tray_id")
-
-for tray_id, group in for_trays:
+for tray_id, group in df.groupby("tray_id"):
     tray_summary_rows.append({
         "tray_id": tray_id,
         "remark": get_tray_remark(group),
@@ -275,7 +303,9 @@ tray_summary["mean_voltage"] = tray_summary["mean_voltage"].round(3)
 tray_summary["mean_final_score"] = tray_summary["mean_final_score"].round(2)
 
 
-# Display tray cards
+# =========================
+# DISPLAY TRAY CARDS
+# =========================
 card_cols = st.columns(3)
 
 for index, row in tray_summary.iterrows():
@@ -288,31 +318,32 @@ for index, row in tray_summary.iterrows():
     else:
         remark_class = "remark-defect"
 
+    card_html = (
+        f'<div class="tray-card">'
+        f'<div class="tray-id">{row["tray_id"]}</div>'
+        f'<div class="{remark_class}">{remark}</div>'
+        f'<div class="metric-label-custom">Total Die</div>'
+        f'<div class="metric-value-custom">{row["total_die"]}</div>'
+        f'<div class="metric-label-custom">Mean Misalignment</div>'
+        f'<div class="metric-value-custom">{clean_value(row["mean_misalignment_percent"], "%", 2)}</div>'
+        f'<div class="metric-label-custom">Mean Voltage</div>'
+        f'<div class="metric-value-custom">{clean_value(row["mean_voltage"], " V", 3)}</div>'
+        f'<div class="metric-label-custom">Mean Final Score</div>'
+        f'<div class="metric-value-custom">{clean_value(row["mean_final_score"], "", 2)}</div>'
+        f'</div>'
+    )
+
     with card_cols[index % 3]:
-        st.markdown(
-            card_html = f"""
-            <div class="tray-card">
-                <div class="tray-id">{row["tray_id"]}</div>
-                <div class="{remark_class}">{remark}</div>
-
-                <div class="metric-label">Total Die</div>
-                <div class="metric-value">{row["total_die"]}</div>
-
-                <div class="metric-label">Mean Misalignment</div>
-                <div class="metric-value">{row["mean_misalignment_percent"]}%</div>
-
-                <div class="metric-label">Mean Voltage</div>
-                <div class="metric-value">{row["mean_voltage"]} V</div>
-
-                <div class="metric-label">Mean Final Score</div>
-                <div class="metric-value">{row["mean_final_score"]}</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        st.markdown(card_html, unsafe_allow_html=True)
 
 
-st.markdown('<div class="section-heading">Select Tray to Inspect</div>', unsafe_allow_html=True)
+# =========================
+# SELECT TRAY TO INSPECT
+# =========================
+st.markdown(
+    '<div class="section-heading">Select Tray to Inspect</div>',
+    unsafe_allow_html=True
+)
 
 selected_tray = st.selectbox(
     "Choose a tray ID",
@@ -337,9 +368,13 @@ else:
 # OVERVIEW METRICS
 # =========================
 total_die = len(filtered_df)
-visual_fail = (filtered_df["visual_status"].astype(str).str.upper() == "FAIL").sum()
-visual_warning = (filtered_df["visual_status"].astype(str).str.upper() == "WARNING").sum()
-electrical_fail = (filtered_df["electrical_status"].astype(str).str.upper() == "FAIL").sum()
+
+visual_status_upper = filtered_df["visual_status"].astype(str).str.upper()
+electrical_status_upper = filtered_df["electrical_status"].astype(str).str.upper()
+
+visual_fail = visual_status_upper.isin(["FAIL", "DEFECT"]).sum()
+visual_warning = (visual_status_upper == "WARNING").sum()
+electrical_fail = electrical_status_upper.isin(["FAIL", "DEFECT"]).sum()
 
 average_misalignment = filtered_df["misalignment_percent"].mean()
 average_score = filtered_df["final_die_score"].mean()
@@ -354,15 +389,15 @@ col5.metric("Electrical FAIL", electrical_fail)
 
 col6, col7 = st.columns(2)
 
-if pd.isna(average_misalignment):
-    col6.metric("Average Misalignment", "N/A")
-else:
-    col6.metric("Average Misalignment", f"{average_misalignment:.2f}%")
+col6.metric(
+    "Average Misalignment",
+    clean_value(average_misalignment, "%", 2)
+)
 
-if pd.isna(average_score):
-    col7.metric("Average Final Die Score", "N/A")
-else:
-    col7.metric("Average Final Die Score", f"{average_score:.1f}")
+col7.metric(
+    "Average Final Die Score",
+    clean_value(average_score, "", 1)
+)
 
 
 # =========================
@@ -423,9 +458,6 @@ st.dataframe(
 # =========================
 st.subheader("Inspection Performance Summary")
 
-visual_status_upper = filtered_df["visual_status"].astype(str).str.upper()
-electrical_status_upper = filtered_df["electrical_status"].astype(str).str.upper()
-
 visual_pass_count = (visual_status_upper == "PASS").sum()
 electrical_pass_count = (electrical_status_upper == "PASS").sum()
 
@@ -433,22 +465,13 @@ visual_pass_rate = (visual_pass_count / total_die * 100) if total_die > 0 else 0
 electrical_pass_rate = (electrical_pass_count / total_die * 100) if total_die > 0 else 0
 
 average_overlap = filtered_df["overlap_percent"].mean()
-average_visual_score = filtered_df["visual_score"].mean()
 
 summary_col1, summary_col2, summary_col3, summary_col4 = st.columns(4)
 
 summary_col1.metric("Visual Pass Rate", f"{visual_pass_rate:.1f}%")
 summary_col2.metric("Electrical Pass Rate", f"{electrical_pass_rate:.1f}%")
-
-if pd.isna(average_misalignment):
-    summary_col3.metric("Average Misalignment", "N/A")
-else:
-    summary_col3.metric("Average Misalignment", f"{average_misalignment:.2f}%")
-
-if pd.isna(average_overlap):
-    summary_col4.metric("Average Overlap", "N/A")
-else:
-    summary_col4.metric("Average Overlap", f"{average_overlap:.2f}%")
+summary_col3.metric("Average Misalignment", clean_value(average_misalignment, "%", 2))
+summary_col4.metric("Average Overlap", clean_value(average_overlap, "%", 2))
 
 
 # =========================
@@ -501,6 +524,7 @@ if not score_trend_df.empty:
 else:
     st.info("No score trend data available yet.")
 
+
 # =========================
 # DIE DETAIL VIEW
 # =========================
@@ -520,24 +544,43 @@ detail_col1, detail_col2, detail_col3 = st.columns(3)
 
 detail_col1.metric("Visual Status", str(die_row["visual_status"]))
 detail_col2.metric("Electrical Status", str(die_row["electrical_status"]))
-
-final_score = die_row["final_die_score"]
-if pd.isna(final_score):
-    detail_col3.metric("Final Die Score", "N/A")
-else:
-    detail_col3.metric("Final Die Score", f"{final_score:.1f}")
+detail_col3.metric(
+    "Final Die Score",
+    clean_value(die_row["final_die_score"], "", 1)
+)
 
 
+# =========================
+# ALIGNMENT MEASUREMENT
+# =========================
 st.markdown("### Alignment Measurement")
 
 align_col1, align_col2, align_col3, align_col4 = st.columns(4)
 
-align_col1.metric("X Offset", f"{die_row['x_offset_px']:.2f} px" if pd.notna(die_row["x_offset_px"]) else "N/A")
-align_col2.metric("Y Offset", f"{die_row['y_offset_px']:.2f} px" if pd.notna(die_row["y_offset_px"]) else "N/A")
-align_col3.metric("Offset Distance", f"{die_row['offset_distance_px']:.2f} px" if pd.notna(die_row["offset_distance_px"]) else "N/A")
-align_col4.metric("Misalignment", f"{die_row['misalignment_percent']:.2f}%" if pd.notna(die_row["misalignment_percent"]) else "N/A")
+align_col1.metric(
+    "X Offset",
+    clean_value(die_row["x_offset_px"], " px", 2)
+)
+
+align_col2.metric(
+    "Y Offset",
+    clean_value(die_row["y_offset_px"], " px", 2)
+)
+
+align_col3.metric(
+    "Offset Distance",
+    clean_value(die_row["offset_distance_px"], " px", 2)
+)
+
+align_col4.metric(
+    "Misalignment",
+    clean_value(die_row["misalignment_percent"], "%", 2)
+)
 
 
+# =========================
+# DETECTION DETAILS
+# =========================
 st.markdown("### Detection Details")
 
 detect_col1, detect_col2 = st.columns(2)
