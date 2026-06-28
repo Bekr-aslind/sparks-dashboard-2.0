@@ -187,6 +187,27 @@ def clean_value(value, unit="", decimals=2):
     except Exception:
         return str(value)
 
+def convert_google_drive_url(url):
+    url = str(url).strip()
+
+    if not url or url.lower() == "nan":
+        return ""
+
+    if "drive.google.com" not in url:
+        return url
+
+    file_id = ""
+
+    if "id=" in url:
+        file_id = url.split("id=")[-1].split("&")[0]
+
+    elif "/d/" in url:
+        file_id = url.split("/d/")[-1].split("/")[0]
+
+    if file_id:
+        return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1200"
+
+    return url
 
 def display_status(value):
     value = str(value).upper()
@@ -681,11 +702,14 @@ if os.path.exists(local_processed_path):
     )
 
 elif image_url and image_url.lower() != "nan":
+    display_image_url = convert_google_drive_url(image_url)
+
     st.image(
-        image_url,
+        display_image_url,
         caption=f"Processed image for {selected_die}",
         use_container_width=True
     )
+
     st.markdown(f"[Open image in new tab]({image_url})")
 
 else:
